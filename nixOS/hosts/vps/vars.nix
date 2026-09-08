@@ -2,7 +2,7 @@
 {
   hostname = "vps";
   username = "deploy"; # CHANGE if you'd rather log in as something else
-  gitEmail = "maladiex5@gmail.com";
+  gitEmail = "enexolgort94@gmail.com";
 
   # Hostinger's KVM VPS plans present the disk as a virtio device
   # (/dev/vda), not a SATA/SCSI one (/dev/sda) — verify with `lsblk` or
@@ -38,7 +38,7 @@
 
   # gitServerEnable = true, so these need to actually be here.
   # NOTE: "admin" itself is a reserved username in Forgejo.
-  gitAdminUser = "gituser";
+  gitAdminUser = "enexolgort";
   gitAdminPass = "changeme-git"; # CHANGE THIS
 
   backupEnable = false;
