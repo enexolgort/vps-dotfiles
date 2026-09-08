@@ -46,6 +46,13 @@ check_port 3000 "Forgejo / git server"
 check_port 5678 "n8n"
 check_port 11434 "Ollama"
 check_port 8080 "Open WebUI"
+# transmission-API isn't deployed by this repo (no service for it in
+# configuration.nix yet) — these just check it if/when it's running via
+# its own docker-compose.yml, whose default ports are 9091 (Transmission
+# itself) and 3001 (the API, deliberately not 3000 to avoid clashing
+# with Forgejo above).
+check_port 9091 "Transmission (transmission-API stack)"
+check_port 3001 "transmission-API"
 
 echo
 echo "${BOLD}Summary: $PASS passed, $FAIL failed${RESET}"
