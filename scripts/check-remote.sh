@@ -41,22 +41,10 @@ check_port() {
 
 echo "${BOLD}Checking vps ($HOST)${RESET}"
 check_port 22 "SSH"
-check_port 5984 "CouchDB / Obsidian sync"
 check_port 3000 "Forgejo / git server"
 check_port 5678 "n8n"
 check_port 11434 "Ollama"
 check_port 8080 "Open WebUI"
-check_port 9091 "Transmission (transmission-API stack)"
-if command -v curl >/dev/null 2>&1; then
-  body="$(curl -s --max-time 5 "http://$HOST:3001/health" 2>/dev/null)"
-  if echo "$body" | grep -q '"status":"ok"'; then
-    pass "transmission-API (health check OK at http://$HOST:3001/health)"
-  else
-    fail "transmission-API not responding as expected at http://$HOST:3001/health"
-  fi
-else
-  check_port 3001 "transmission-API"
-fi
 
 echo
 echo "${BOLD}Summary: $PASS passed, $FAIL failed${RESET}"

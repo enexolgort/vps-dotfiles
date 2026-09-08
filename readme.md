@@ -1,6 +1,6 @@
 # vps — NixOS config for a Hostinger VPS
 
-Classical single-file NixOS setup (nixpkgs `nixos-26.05`, via a minimal flake) for a Hostinger VPS. Everything reachable — Obsidian sync (CouchDB), a self-hosted git server (Forgejo), local AI (Ollama + Open WebUI), and n8n — is locked to your Tailscale tailnet. No per-host indirection, no home-manager, no module split: `configuration.nix` is the whole system, one file, plainly readable top to bottom.
+Classical single-file NixOS setup (nixpkgs `nixos-26.05`, via a minimal flake) for a Hostinger VPS. Everything reachable — a self-hosted git server (Forgejo), local AI (Ollama + Open WebUI), and n8n — is locked to your Tailscale tailnet. No per-host indirection, no home-manager, no module split: `configuration.nix` is the whole system, one file, plainly readable top to bottom.
 
 ```
 vps-dotfiles/
@@ -21,7 +21,7 @@ sudo nixos-rebuild switch --flake /etc/nixos#vps
 On later changes: edit locally, `git push`, then on the VPS `git pull && sudo cp -r . /etc/nixos/ && sudo nixos-rebuild switch --flake /etc/nixos#vps` (or just edit `/etc/nixos` directly and copy changes back into the repo — either direction works, they just need to stay in sync).
 
 ## First boot
-1. **Change the placeholder passwords** in `configuration.nix` before this box is actually exposed: `deploy`'s `initialPassword`, `couchdb`'s `adminPass`, and forgejo's admin `--password`. All three currently say `changeme*` — search for it.
+1. **Change the placeholder passwords** in `configuration.nix` before this box is actually exposed: `deploy`'s `initialPassword` and forgejo's admin `--password`. Both currently say `changeme*` — search for it.
 2. **Join your tailnet**:
    ```bash
    sudo tailscale up --ssh
@@ -33,7 +33,6 @@ On later changes: edit locally, `git push`, then on the VPS `git pull && sudo cp
 | Service | Port | Notes |
 |---|---|---|
 | SSH | 22 | Public + tailnet until step 2 above, tailnet-only after |
-| CouchDB (Obsidian sync) | 5984 | Use the "Self-hosted LiveSync" Obsidian community plugin |
 | Forgejo (git server) | 3000 | Admin account created declaratively on first boot |
 | Ollama | 11434 | API only |
 | Open WebUI | 8080 | Chat frontend for Ollama |
@@ -46,6 +45,6 @@ Run from **any device on your tailnet**, not the VPS itself:
 ```
 
 ## Notes
-- `services.couchdb.adminPass` and Forgejo's admin password land in plaintext in the Nix store (world-readable locally) — this repo doesn't set up sops-nix/secrets management, on purpose, to keep things simple. Fine for a single-user tailnet-only box; revisit if that stops being true.
+- Forgejo's admin password lands in plaintext in the Nix store (world-readable locally) — this repo doesn't set up sops-nix/secrets management, on purpose, to keep things simple. Fine for a single-user tailnet-only box; revisit if that stops being true.
 - Disk device (`boot.loader.grub.device`) is `/dev/sda` — confirmed via `lsblk` on this specific VPS. Don't assume that's universal across Hostinger plans; re-check if you ever redeploy from scratch on different hardware.
 - `system.stateVersion` is set once at install and should never be bumped afterward, regardless of which nixpkgs release you track later.
