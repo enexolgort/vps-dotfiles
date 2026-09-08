@@ -29,7 +29,7 @@ Everything specific to this machine — hostname, username, bootloader, which se
   username = "deploy";
   gitEmail = "...";
   bootloader = "grub";
-  grubDevice = "/dev/vda";
+  grubDevice = "/dev/sda"; # confirm with `lsblk` — varies by plan/hypervisor
 
   jellyfinEnable = false;
   obsidianEnable = true;
@@ -75,7 +75,7 @@ Three opt-in features, all off by default:
 |---|---|---|
 | `couchdbAdminPass`, `gitAdminPass` | `hosts/vps/vars.nix` | real passwords |
 | `hostname`, `username`, `gitEmail` | `hosts/vps/vars.nix` | your actual identity |
-| `grubDevice` | `hosts/vps/vars.nix` | confirm via `lsblk`/`parted` — Hostinger's VPS usually is `/dev/vda`, but verify |
+| `grubDevice` | `hosts/vps/vars.nix` | confirm via `lsblk`/`parted` — this varies by plan/hypervisor (`/dev/sda`, `/dev/vda`, etc.), don't trust either blindly |
 
 **On secrets:** `initialPassword`, `couchdbAdminPass`, `gitAdminPass` land in plaintext in the Nix store (world-readable) until `secretsEnabled` is turned on — see [secrets.md](./secrets.md).
 
