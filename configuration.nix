@@ -13,6 +13,13 @@
   i18n.defaultLocale = "en_US.UTF-8";
   console.keyMap = "us";
 
+  # /etc/resolv.conf on this VPS had no nameserver lines at all (DHCP
+  # never handed any over) — every hostname lookup failed while raw IP
+  # traffic worked fine, which is what broke n8n's image pull. Setting
+  # these explicitly is what actually populates resolv.conf's
+  # nameserver entries.
+  networking.nameservers = [ "1.1.1.1" "8.8.8.8" ];
+
   # --- Nix itself ---------------------------------------------------
   nix.settings.experimental-features = [ "nix-command" "flakes" ];
   nixpkgs.config.allowUnfree = true;
