@@ -11,8 +11,10 @@ lib.mkIf vars.aiEnable {
   services.ollama = {
     enable = true;
     # CPU-only by default — most VPS plans have no GPU passthrough.
-    # Override to "cuda"/"rocm" here if yours actually does.
-    acceleration = false;
+    # Override to pkgs.ollama-cuda/-rocm/-vulkan here if yours actually
+    # does. (services.ollama.acceleration was removed upstream — package
+    # selection is now how this is controlled.)
+    package = pkgs.ollama-cpu;
     loadModels = vars.aiModels;
     host = "0.0.0.0"; # was defaulting to 127.0.0.1-only — same bug as CouchDB/Open WebUI
   };
