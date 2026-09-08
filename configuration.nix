@@ -206,9 +206,105 @@
     # this is a bind mount, not a Docker-managed volume, so there's no
     # UID remapping; root:root here causes a hard EACCES crash-loop.
     "d /var/lib/n8n 0755 1000 1000 -"
+    # transmission-API's containers — see that section below. 1000:1000
+    # matches their PUID/PGID env vars (linuxserver images run as that
+    # UID internally, so the host dirs need to actually be owned by it).
+    "d /var/lib/transmission-api 0755 1000 1000 -"
+    "d /var/lib/transmission-api/config 0755 1000 1000 -"
+    "d /var/lib/transmission-api/downloads 0755 1000 1000 -"
   ];
   systemd.services.docker-n8n = {
     after = [ "network-online.target" "docker.service" ];
+    wants = [ "network-online.target" ];
+  };
+
+  # --- transmission-API (github.com/enexolgort/transmission-API) ------
+  # Two containers: linuxserver's published Transmission image (torrent
+  # client + its own RPC/web UI), and this repo's own small API in front
+  # of it — which has no published image, so it has to be built from
+  # source. Not using its own docker-compose.yml as-is: that file
+  # publishes ports via Docker's bridge networking (`ports: "9091:9091"`
+  # etc), which — same gotcha flagged in the n8n section above — bypasses
+  # the NixOS firewall's trustedInterfaces rule entirely, putting both
+  # services on the public internet instead of tailnet-only. Both
+  # containers use --network=host instead, same as n8n, so the firewall
+  # actually applies.
+  #
+  # Host networking means no docker-internal DNS between the two
+  # containers anymore, hence TRANSMISSION_HOST=127.0.0.1 below instead
+  # of the compose file's "transmission" service name. It also means the
+  # API's own PORT can't be remapped via a "host:container" ports line
+  # like the compose file does (3001:3000) — it has to actually listen
+  # on 3001 itself, since 3000 is already Forgejo above.
+  #
+  # SFTP push (the API's optional push-sftp endpoint) isn't configured
+  # here — that needs a real private key and remote host, which don't
+  # belong hardcoded in this repo. Add SFTP_HOST/SFTP_USERNAME env vars
+  # and mount a real key to /run/secrets/sftp_key if you want that later.
+  systemd.services.transmission-api-build = {
+    description = "Build the transmission-API docker image from source";
+    after = [ "network-online.target" "docker.service" ];
+    wants = [ "network-online.target" ];
+    path = [ pkgs.docker pkgs.git ];
+    serviceConfig = {
+      Type = "oneshot";
+      RemainAfterExit = true;
+    };
+    script = ''
+      set -eu
+      SRC=/opt/transmission-api-src
+      if [ ! -d "$SRC/.git" ]; then
+        git clone --depth 1 https://github.com/enexolgort/transmission-API "$SRC"
+      fi
+      docker build -t transmission-api:local "$SRC"
+    '';
+  };
+  # Doesn't rebuild on every rebuild/boot once it's succeeded once
+  # (RemainAfterExit) — to actually pick up upstream changes later:
+  #   sudo rm -rf /opt/transmission-api-src
+  #   sudo systemctl restart transmission-api-build.service docker-transmission-api.service
+
+  virtualisation.oci-containers.containers.transmission = {
+    image = "lscr.io/linuxserver/transmission:latest";
+    autoStart = true;
+    extraOptions = [ "--network=host" ];
+    volumes = [
+      "/var/lib/transmission-api/config:/config"
+      "/var/lib/transmission-api/downloads:/downloads"
+    ];
+    environment = {
+      PUID = "1000";
+      PGID = "1000";
+      TZ = "UTC";
+      # RPC has no auth by default. Fine tailnet-only (see firewall
+      # note above), but uncomment + set a real password if you want
+      # defense in depth:
+      # USER = "transmission";
+      # PASS = "changeme";
+    };
+  };
+  systemd.services.docker-transmission = {
+    after = [ "network-online.target" ];
+    wants = [ "network-online.target" ];
+  };
+
+  virtualisation.oci-containers.containers.transmission-api = {
+    image = "transmission-api:local"; # built locally above, not pulled from anywhere
+    autoStart = true;
+    extraOptions = [ "--network=host" ];
+    dependsOn = [ "transmission" ];
+    volumes = [ "/var/lib/transmission-api/downloads:/downloads:ro" ];
+    environment = {
+      TRANSMISSION_HOST = "127.0.0.1"; # host networking — no docker-internal DNS to the other container anymore
+      TRANSMISSION_PORT = "9091";
+      TRANSMISSION_RPC_PATH = "/transmission/rpc";
+      TRANSMISSION_PROTOCOL = "http";
+      PORT = "3001"; # not 3000 — already Forgejo
+    };
+  };
+  systemd.services.docker-transmission-api = {
+    after = [ "network-online.target" "transmission-api-build.service" "docker-transmission.service" ];
+    requires = [ "transmission-api-build.service" ];
     wants = [ "network-online.target" ];
   };
 
