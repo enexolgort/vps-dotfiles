@@ -99,10 +99,10 @@
     enable = true;
 
     initExtra = ''
-      # Neofetch on every interactive login (skipped for non-interactive
+      # Fastfetch on every interactive login (skipped for non-interactive
       # shells like scp/rsync/git-over-ssh, so it doesn't spam those).
       if [[ $- == *i* ]]; then
-        neofetch
+        fastfetch
       fi
 
       # --- Named-flag move/copy/rename, e.g.:
