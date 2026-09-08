@@ -44,6 +44,7 @@ check_port 22 "SSH"
 check_port 5984 "CouchDB / Obsidian sync"
 check_port 3000 "Forgejo / git server"
 check_port 5678 "n8n"
+check_port 11434 "Ollama"
 check_port 8080 "Open WebUI"
 
 echo
