@@ -4,18 +4,20 @@
   username = "deploy"; # CHANGE if you'd rather log in as something else
   gitEmail = "enexolgort94@gmail.com";
 
-  # Hostinger's KVM VPS plans present the disk as a virtio device
-  # (/dev/vda), not a SATA/SCSI one (/dev/sda) — verify with `lsblk` or
-  # `sudo parted /dev/vda -- print` on first boot and adjust if wrong.
+  # Confirmed via `lsblk` on the actual VPS: this plan presents its disk
+  # as /dev/sda (virtio-scsi, per boot.initrd.availableKernelModules'
+  # virtio_scsi in hardware-configuration.nix) — NOT /dev/vda. Disk
+  # naming genuinely varies by Hostinger plan/hypervisor config, so
+  # don't trust either name blindly; always verify with `lsblk` first.
   #
   # GRUB rather than systemd-boot: most Hostinger VPS plans still boot
   # BIOS/legacy rather than UEFI (same failure mode the inspiration repo
   # hit — "efiSysMountPoint = '/boot' is not a mounted partition" — is
   # what systemd-boot gives you on a BIOS-booted box). Confirm via
-  # `sudo parted /dev/vda -- print`: "msdos" = BIOS (stick with grub),
+  # `sudo parted /dev/sda -- print`: "msdos" = BIOS (stick with grub),
   # "gpt" = UEFI (systemd-boot is fine, switch bootloader below).
   bootloader = "grub";
-  grubDevice = "/dev/vda";
+  grubDevice = "/dev/sda";
 
   # --- Services -----------------------------------------------------
   # Everything headless previously ran (Obsidian sync, git server, n8n)
