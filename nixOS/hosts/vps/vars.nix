@@ -26,7 +26,6 @@
   aiEnable = true; # Ollama + Open WebUI — see common/ai.nix
   sftpEnable = false;
   n8nEnable = true;
-  monitoringHubEnable = false;
 
   # CPU-only inference — start conservative and size up once you know
   # this VPS plan's actual RAM/core count (`nproc`, `free -h`).
