@@ -40,7 +40,7 @@
     nerd-fonts.jetbrains-mono # patched font for doom's modeline icons
     gnutls             # emacs package.el / straight.el needs this for https
     unzip
-    neofetch
+    fastfetch # neofetch was removed from nixpkgs (unmaintained upstream); this is its maintained replacement
   ];
 
   # --- Auto-bootstrap Doom Emacs on first home-manager activation ----
@@ -62,59 +62,37 @@
   # Put doom's bin on PATH
   home.sessionPath = [ "$HOME/.config/emacs/bin" ];
 
-  # --- Neofetch: shown automatically on every interactive login -------
-  xdg.configFile."neofetch/config.conf".text = ''
-    print_info() {
-        info title
-        info underline
-        info "OS" distro
-        info "Host" model
-        info "Kernel" kernel
-        info "Uptime" uptime
-        info "Packages" packages
-        info "Shell" shell
-        info "Terminal" term
-        info "CPU" cpu
-        info "GPU" gpu
-        info "Memory" memory
-        info "Disk" disk
-        info "Local IP" local_ip
-        info "Locale" locale
-        info cols
+  # --- Fastfetch: shown automatically on every interactive login -------
+  # Same info set the old neofetch config showed; fastfetch's config is
+  # JSONC rather than neofetch's bash-sourced format.
+  xdg.configFile."fastfetch/config.jsonc".text = ''
+    {
+      "$schema": "https://github.com/fastfetch-cli/fastfetch/raw/dev/doc/json_schema.json",
+      "logo": {
+        "type": "auto"
+      },
+      "display": {
+        "separator": " -> "
+      },
+      "modules": [
+        "title",
+        "separator",
+        "os",
+        "host",
+        "kernel",
+        "uptime",
+        "packages",
+        "shell",
+        "terminal",
+        "cpu",
+        "gpu",
+        "memory",
+        "disk",
+        "localip",
+        "locale",
+        "colors"
+      ]
     }
-
-    ascii_distro="auto"
-    ascii_colors=(distro)
-    ascii_bold="on"
-
-    bold="on"
-    underline_enabled="on"
-    underline_char="-"
-    separator=" ->"
-
-    color_blocks="on"
-    block_range=(0 15)
-    block_width=3
-    block_height=1
-    col_offset="auto"
-
-    memory_percent="on"
-    memory_unit="gib"
-
-    disk_show=("/")
-    disk_subtitle="mount"
-    disk_percent="on"
-
-    speed_type="bios_limit"
-    cpu_brand="on"
-    cpu_speed="on"
-    cpu_cores="logical"
-    cpu_temp="off"
-
-    gpu_brand="on"
-    gpu_type="all"
-
-    image_backend="ascii"
   '';
 
   programs.bash = {
