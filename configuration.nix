@@ -200,6 +200,13 @@
     volumes = [ "/var/lib/uptime-kuma:/app/data" ];
     environment = {
       UPTIME_KUMA_PORT = "3001"; # 3000 is already Forgejo above
+      # This VPS advertises an AAAA route for api.telegram.org that isn't
+      # actually reachable (IPv6 egress is broken/half-configured here),
+      # so Node tries the IPv6 address first and hangs until ETIMEDOUT
+      # instead of falling back to IPv4. Forces IPv4-first resolution so
+      # Telegram notifications (and anything else this container calls
+      # out to) don't stall on that dead route.
+      NODE_OPTIONS = "--dns-result-order=ipv4first";
     };
   };
   systemd.services.docker-uptime-kuma = {
