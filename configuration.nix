@@ -1,7 +1,7 @@
 # configuration.nix — vps, a Hostinger VPS.
 # One flat file, nothing hardcoded behind toggles: every service below
 # is one you actually turned on (Obsidian sync, git server, local AI,
-# n8n). Everything reachable is tailnet-only except SSH, which is also
+# n8n, Uptime Kuma). Everything reachable is tailnet-only except SSH, which is also
 # open on the public interface until Tailscale SSH is confirmed working
 # (see the firewall section below).
 { config, pkgs, lib, ... }:
@@ -178,8 +178,31 @@
     # this is a bind mount, not a Docker-managed volume, so there's no
     # UID remapping; root:root here causes a hard EACCES crash-loop.
     "d /var/lib/n8n 0755 1000 1000 -"
+    # Uptime Kuma's container runs as root internally, unlike n8n above —
+    # root:root here is correct, not a leftover.
+    "d /var/lib/uptime-kuma 0755 root root -"
   ];
   systemd.services.docker-n8n = {
+    after = [ "network-online.target" "docker.service" ];
+    wants = [ "network-online.target" ];
+  };
+
+  # --- Uptime Kuma (status/monitoring dashboard) -----------------------
+  # Watches Forgejo/n8n/Ollama/Open WebUI over tailnet HTTP(S)/TCP checks
+  # and can hit an n8n webhook on state change, so failures actually
+  # surface instead of being noticed days later. --network=host, same
+  # reasoning as n8n above: a bridge-mode ports mapping would bypass the
+  # firewall's trustedInterfaces and expose it publicly.
+  virtualisation.oci-containers.containers.uptime-kuma = {
+    image = "louislam/uptime-kuma:1";
+    autoStart = true;
+    extraOptions = [ "--network=host" ];
+    volumes = [ "/var/lib/uptime-kuma:/app/data" ];
+    environment = {
+      UPTIME_KUMA_PORT = "3001"; # 3000 is already Forgejo above
+    };
+  };
+  systemd.services.docker-uptime-kuma = {
     after = [ "network-online.target" "docker.service" ];
     wants = [ "network-online.target" ];
   };

@@ -1,6 +1,6 @@
 # vps — NixOS config for a Hostinger VPS
 
-Classical single-file NixOS setup (nixpkgs `nixos-26.05`, via a minimal flake) for a Hostinger VPS. Everything reachable — a self-hosted git server (Forgejo), local AI (Ollama + Open WebUI), and n8n — is locked to your Tailscale tailnet. No per-host indirection, no home-manager, no module split: `configuration.nix` is the whole system, one file, plainly readable top to bottom.
+Classical single-file NixOS setup (nixpkgs `nixos-26.05`, via a minimal flake) for a Hostinger VPS. Everything reachable — a self-hosted git server (Forgejo), local AI (Ollama + Open WebUI), n8n, and Uptime Kuma — is locked to your Tailscale tailnet. No per-host indirection, no home-manager, no module split: `configuration.nix` is the whole system, one file, plainly readable top to bottom.
 
 ```
 vps-dotfiles/
@@ -37,6 +37,7 @@ On later changes: edit locally, `git push`, then on the VPS `git pull && sudo cp
 | Ollama | 11434 | API only |
 | Open WebUI | 8080 | Chat frontend for Ollama |
 | n8n | 5678 | Workflow automation |
+| Uptime Kuma | 3001 | Status/monitoring dashboard for the other services |
 
 ## Checking everything's actually reachable
 Run from **any device on your tailnet**, not the VPS itself:
