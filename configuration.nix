@@ -221,6 +221,8 @@
     environment = {
       N8N_PORT = "5678";
       N8N_SECURE_COOKIE = "false"; # n8n expects HTTPS by default; Tailscale's WireGuard already covers the transport layer
+      GENERIC_TIMEZONE = "UTC"; # n8n defaults to America/New_York internally otherwise, regardless of
+                                 # the host's time.timeZone above — throws off Schedule Trigger cron times
       NODES_EXCLUDE = "[]"; # re-enables the Execute Command node (disabled by default since n8n 2.0)
       # Code node's require() allowlist — broad but deliberately
       # excludes child_process and vm, which would recreate the same
