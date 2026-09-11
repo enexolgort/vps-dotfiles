@@ -93,6 +93,52 @@
     wants = [ "network-online.target" ];
   };
 
+  # --- Postgres (backing store for the n8n watchlist workflows below) --
+  # Localhost-only, deliberately: n8n runs on the same host (--network=host,
+  # so "127.0.0.1" from inside its container is this host's loopback), and
+  # nothing else needs to reach this DB — so it's never added to the
+  # firewall/tailnet surface at all, unlike every other service in this file.
+  services.postgresql = {
+    enable = true;
+    enableTCPIP = true; # off by default (unix socket only) — n8n's Postgres node only speaks TCP
+    ensureDatabases = [ "watchlist" ];
+    ensureUsers = [
+      { name = "n8n"; ensureDBOwnership = true; }
+    ];
+    # ensureUsers has no password support (it's for peer-auth roles) —
+    # password + schema are set by the oneshot below instead.
+    authentication = lib.mkForce ''
+      local all all peer
+      host watchlist n8n 127.0.0.1/32 scram-sha-256
+    '';
+  };
+  # Idempotent, same reasoning as Forgejo's admin-user preStart below:
+  # safe to run on every boot. Runs as the "postgres" OS user so it
+  # connects over the local unix socket via peer auth, no password needed
+  # for this part.
+  systemd.services.postgresql-watchlist-init = {
+    description = "Set n8n's watchlist DB password and create the to_watch table";
+    after = [ "postgresql.service" ];
+    wants = [ "postgresql.service" ];
+    wantedBy = [ "multi-user.target" ];
+    serviceConfig = {
+      Type = "oneshot";
+      User = "postgres";
+    };
+    path = [ config.services.postgresql.package ];
+    script = ''
+      psql -d watchlist -c "ALTER USER n8n WITH PASSWORD 'changeme-db';"
+      psql -d watchlist -c "CREATE TABLE IF NOT EXISTS to_watch (
+        id serial PRIMARY KEY,
+        title text NOT NULL,
+        kind text NOT NULL CHECK (kind IN ('book','movie','tv show')),
+        status text NOT NULL DEFAULT 'to watch' CHECK (status IN ('to watch','watching','done')),
+        notes text,
+        added_at timestamptz NOT NULL DEFAULT now()
+      );"
+    '';
+  };
+
   # --- Self-hosted git server (Forgejo) --------------------------------
   # Lightweight (single Go binary, SQLite by default). Reachable at
   # http://<tailscale-ip>:3000.

@@ -21,7 +21,7 @@ sudo nixos-rebuild switch --flake /etc/nixos#vps
 On later changes: edit locally, `git push`, then on the VPS `git pull && sudo cp -r . /etc/nixos/ && sudo nixos-rebuild switch --flake /etc/nixos#vps` (or just edit `/etc/nixos` directly and copy changes back into the repo — either direction works, they just need to stay in sync).
 
 ## First boot
-1. **Change the placeholder passwords** in `configuration.nix` before this box is actually exposed: `deploy`'s `initialPassword` and forgejo's admin `--password`. Both currently say `changeme*` — search for it.
+1. **Change the placeholder passwords** in `configuration.nix` before this box is actually exposed: `deploy`'s `initialPassword`, forgejo's admin `--password`, and the `n8n` Postgres role's password. All currently say `changeme*` — search for it.
 2. **Join your tailnet**:
    ```bash
    sudo tailscale up --ssh
@@ -38,6 +38,7 @@ On later changes: edit locally, `git push`, then on the VPS `git pull && sudo cp
 | Open WebUI | 8080 | Chat frontend for Ollama |
 | n8n | 5678 | Workflow automation |
 | Uptime Kuma | 3001 | Status/monitoring dashboard for the other services |
+| Postgres | 5432 | localhost-only (backs the n8n watchlist workflows) — not tailnet-reachable |
 
 ## Checking everything's actually reachable
 Run from **any device on your tailnet**, not the VPS itself:
