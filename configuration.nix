@@ -92,6 +92,16 @@
     after = [ "network-online.target" ];
     wants = [ "network-online.target" ];
   };
+  # Unlike the Nix store (nix.gc above), nothing else here prunes old
+  # Docker layers, stopped containers, or dangling images — they'd
+  # otherwise grow unbounded. --all also removes unused (not just
+  # dangling) images, safe here since every image this box runs is
+  # declared above and gets re-pulled/rebuilt automatically if needed.
+  virtualisation.docker.autoPrune = {
+    enable = true;
+    dates = "weekly";
+    flags = [ "--all" ];
+  };
 
   # --- Postgres (backing store for the n8n watchlist workflows below) --
   # Localhost-only, deliberately: n8n runs on the same host (--network=host,
@@ -276,6 +286,46 @@
   systemd.services.docker-uptime-kuma = {
     after = [ "network-online.target" "docker.service" ];
     wants = [ "network-online.target" ];
+  };
+
+  # --- Backups -----------------------------------------------------------
+  # Local-only, deliberately staged as step one: this protects against a
+  # bad rebuild, an accidental rm, or a corrupted DB, but NOT against the
+  # whole disk/VPS dying — that needs an off-box destination (rsync/restic
+  # to another host or object storage), which isn't set up here because
+  # none has been chosen yet. Revisit once one exists.
+  systemd.services.vps-backup = {
+    description = "Back up Postgres watchlist DB, n8n data, and Forgejo data";
+    after = [ "postgresql.service" "docker-n8n.service" "forgejo.service" ];
+    serviceConfig = {
+      Type = "oneshot";
+    };
+    path = [ config.services.postgresql.package pkgs.gnutar pkgs.gzip pkgs.util-linux ];
+    script = ''
+      set -eu
+      DEST=/var/backups/vps
+      STAMP=$(date +%Y-%m-%d)
+      mkdir -p "$DEST"
+
+      # runuser, not psql -U postgres directly: pg_dump needs to connect
+      # as the "postgres" role, which is peer-auth only (see the
+      # authentication block above) - has to actually run as that OS user.
+      runuser -u postgres -- pg_dump watchlist | gzip -c > "$DEST/watchlist-$STAMP.sql.gz"
+      tar czf "$DEST/n8n-$STAMP.tar.gz" -C /var/lib n8n
+      # /var/lib/forgejo is Forgejo's default stateDir - not overridden above.
+      tar czf "$DEST/forgejo-$STAMP.tar.gz" -C /var/lib forgejo
+
+      # Keep 14 days of daily backups, drop anything older.
+      find "$DEST" -mindepth 1 -mtime +14 -delete
+    '';
+  };
+  systemd.timers.vps-backup = {
+    description = "Run vps-backup daily";
+    wantedBy = [ "timers.target" ];
+    timerConfig = {
+      OnCalendar = "daily";
+      Persistent = true; # catches up on the next boot if the VPS was off at the scheduled time
+    };
   };
 
   # --- Base packages ------------------------------------------------

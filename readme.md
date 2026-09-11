@@ -47,6 +47,32 @@ Run from **any device on your tailnet**, not the VPS itself:
 ./scripts/check-remote.sh --host vps
 ```
 
+## Backups
+A daily systemd timer (`vps-backup.timer`, fires once a day, catches up on next boot via `Persistent = true` if the VPS was off at the scheduled time) dumps to `/var/backups/vps/`:
+- `watchlist-<date>.sql.gz` — `pg_dump` of the Postgres `watchlist` database
+- `n8n-<date>.tar.gz` — all of `/var/lib/n8n` (workflows **and** credentials)
+- `forgejo-<date>.tar.gz` — all of `/var/lib/forgejo` (repos, SQLite DB, admin account)
+
+Old backups are pruned after 14 days. Run it on demand / check it worked:
+```bash
+sudo systemctl start vps-backup.service
+sudo systemctl status vps-backup.service
+ls -la /var/backups/vps/
+```
+
+**This is local-only.** It protects against a bad rebuild, an accidental `rm`, or a corrupted DB — it does **not** protect against the VPS or its disk dying, since the backups live on that same disk. That needs an off-box destination (rsync/restic to another host, or object storage) that hasn't been set up yet — until then, treat this as a safety net for mistakes, not a real disaster-recovery plan.
+
+**Restoring:**
+```bash
+# Postgres
+gunzip -c /var/backups/vps/watchlist-<date>.sql.gz | sudo -u postgres psql watchlist
+
+# n8n / Forgejo — stop the service first, then extract over the existing dir
+sudo systemctl stop docker-n8n   # or: sudo systemctl stop forgejo
+sudo tar xzf /var/backups/vps/n8n-<date>.tar.gz -C /var/lib
+sudo systemctl start docker-n8n
+```
+
 ## Notes
 - Forgejo's admin password lands in plaintext in the Nix store (world-readable locally) — this repo doesn't set up sops-nix/secrets management, on purpose, to keep things simple. Fine for a single-user tailnet-only box; revisit if that stops being true.
 - Disk device (`boot.loader.grub.device`) is `/dev/sda` — confirmed via `lsblk` on this specific VPS. Don't assume that's universal across Hostinger plans; re-check if you ever redeploy from scratch on different hardware.
