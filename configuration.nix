@@ -103,10 +103,12 @@
     enableTCPIP = true; # off by default (unix socket only) — n8n's Postgres node only speaks TCP
     ensureDatabases = [ "watchlist" ];
     ensureUsers = [
-      { name = "n8n"; ensureDBOwnership = true; }
+      { name = "n8n"; } # not ensureDBOwnership: that shortcut requires a database
+                        # named identically to the user ("n8n"), which "watchlist"
+                        # isn't — privileges are granted explicitly by the oneshot below.
     ];
     # ensureUsers has no password support (it's for peer-auth roles) —
-    # password + schema are set by the oneshot below instead.
+    # password + privileges + schema are set by the oneshot below instead.
     authentication = lib.mkForce ''
       local all all peer
       host watchlist n8n 127.0.0.1/32 scram-sha-256
@@ -136,6 +138,11 @@
         notes text,
         added_at timestamptz NOT NULL DEFAULT now()
       );"
+      # The table above is created by the postgres superuser, so n8n's role
+      # needs explicit grants — including on the id sequence, since INSERT
+      # needs to advance it too.
+      psql -d watchlist -c "GRANT ALL PRIVILEGES ON TABLE to_watch TO n8n;"
+      psql -d watchlist -c "GRANT USAGE, SELECT ON SEQUENCE to_watch_id_seq TO n8n;"
     '';
   };
 
