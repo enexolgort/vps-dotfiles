@@ -223,6 +223,12 @@
       N8N_SECURE_COOKIE = "false"; # n8n expects HTTPS by default; Tailscale's WireGuard already covers the transport layer
       GENERIC_TIMEZONE = "UTC"; # n8n defaults to America/New_York internally otherwise, regardless of
                                  # the host's time.timeZone above — throws off Schedule Trigger cron times
+      # Same IPv6 gotcha as Uptime Kuma's NODE_OPTIONS above: this VPS
+      # advertises an AAAA route for api.telegram.org (and possibly other
+      # hosts) that isn't actually reachable, so Node tries IPv6 first and
+      # hangs until ETIMEDOUT instead of falling back to IPv4. Affects any
+      # node here that calls out externally (Telegram, HTTP Request, etc).
+      NODE_OPTIONS = "--dns-result-order=ipv4first";
       NODES_EXCLUDE = "[]"; # re-enables the Execute Command node (disabled by default since n8n 2.0)
       # Code node's require() allowlist — broad but deliberately
       # excludes child_process and vm, which would recreate the same
