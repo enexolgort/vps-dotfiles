@@ -77,3 +77,4 @@ sudo systemctl start docker-n8n
 - Forgejo's admin password lands in plaintext in the Nix store (world-readable locally) — this repo doesn't set up sops-nix/secrets management, on purpose, to keep things simple. Fine for a single-user tailnet-only box; revisit if that stops being true.
 - Disk device (`boot.loader.grub.device`) is `/dev/sda` — confirmed via `lsblk` on this specific VPS. Don't assume that's universal across Hostinger plans; re-check if you ever redeploy from scratch on different hardware.
 - `system.stateVersion` is set once at install and should never be bumped afterward, regardless of which nixpkgs release you track later.
+<!-- push-access verified 2026-09-11T14:28:13Z -->
