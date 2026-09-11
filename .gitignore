@@ -1,3 +1,0 @@
-# n8n workflow exports — instance-specific credential IDs, not system
-# config, easy to re-export from n8n if lost.
-workflow/
