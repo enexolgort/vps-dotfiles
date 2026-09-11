@@ -114,14 +114,17 @@
       host watchlist n8n 127.0.0.1/32 scram-sha-256
     '';
   };
-  # Idempotent, same reasoning as Forgejo's admin-user preStart below:
-  # safe to run on every boot. Runs as the "postgres" OS user so it
-  # connects over the local unix socket via peer auth, no password needed
-  # for this part.
+  # ensureDatabases/ensureUsers don't run inside postgresql.service itself —
+  # NixOS applies them via a separate "postgresql-setup.service" unit that
+  # is merely `after`/`requires` postgresql.service. Our first attempt
+  # ordered against postgresql.service directly and raced that setup unit
+  # (postgresql.service was "active" before "watchlist" existed). Ordering
+  # against postgresql-setup.service instead guarantees the database and
+  # the "n8n" role both already exist by the time this runs.
   systemd.services.postgresql-watchlist-init = {
     description = "Set n8n's watchlist DB password and create the to_watch table";
-    after = [ "postgresql.service" ];
-    wants = [ "postgresql.service" ];
+    after = [ "postgresql-setup.service" ];
+    requires = [ "postgresql-setup.service" ];
     wantedBy = [ "multi-user.target" ];
     serviceConfig = {
       Type = "oneshot";
